@@ -15,21 +15,31 @@ const Status createHeapFile(const string fileName)
     status = db.openFile(fileName, file);
     if (status != OK)
     {
-		// file doesn't exist. First create it and allocate
-		// an empty header page and data page.
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
+      // file doesn't exist. First create it and allocate
+      // an empty header page and data page.
+      db.createFile(fileName);
+      //Create new Header Page
+      bufMgr->allocPage(file, hdrPageNo, newPage);
+      hdrPage = (FileHdrPage*) newPage;
+
+      //initialize header page attributes
+      //hdrPage->fileName = fileName; ********COME BACK*******
+      hdrPage->pageCnt = 0;
+      hdrPage->recCnt = 0;
+      
+      //create and initialize new data page
+      bufMgr->allocPage(file, newPageNo, newPage);
+      newPage->init(newPageNo);
+      hdrPage->firstPage = newPageNo;
+      hdrPage->lastPage = newPageNo;
+      hdrPage->pageCnt++;
+
+      //unpin pages from memory
+      bufMgr->unPinPage(file, hdrPageNo, true);
+      bufMgr->unPinPage(file, newPageNo, true);
+      
+      //flush file to disk
+      bufMgr->flushFile(file);
     }
     return (FILEEXISTS);
 }
@@ -114,19 +124,28 @@ const int HeapFile::getRecCnt() const
 // if record is not on the currently pinned page, the current page
 // is unpinned and the required page is read into the buffer pool
 // and pinned.  returns a pointer to the record via the rec parameter
+//
+//This method returns a record (via the rec structure) given the RID of the record. The private data members curPage and curPageNo should be used to keep track of the current data page pinned in the buffer pool. If the desired record is on the currently pinned page, simply invoke 
+//curPage->getRecord(rid, rec) to get the record.  Otherwise, you need to unpin the currently pinned page (assuming a page is pinned) and use the pageNo field of the RID to read the page into the buffer pool.
+//
+// Going record to record and if one is null then we need to start at the beginning othe bufferpool and eventually get back to the page no we started at
 
 const Status HeapFile::getRecord(const RID & rid, Record & rec)
 {
     Status status;
 
+    if (curPageNo == rid.pageNo){
+      curPage->getRecord(rid, rec);
+    }else{
+      bufMgr->unPinPage(filePtr, rid.pageNo, curDirtyFlag);
+      bufMgr->readPage(filePtr, rid.pageNo, curPage);
+      curPageNo = rid.pageNo;
+      curRec = rid;
+      curDirtyFlag = false;
+    } 
     // cout<< "getRecord. record (" << rid.pageNo << "." << rid.slotNo << ")" << endl;
-   
-   
-   
-   
-   
-   
-   
+    //
+    return status;
 }
 
 HeapFileScan::HeapFileScan(const string & name,
@@ -242,6 +261,7 @@ const Status HeapFileScan::scanNext(RID& outRid)
 
 const Status HeapFileScan::getRecord(Record & rec)
 {
+
     return curPage->getRecord(curRec, rec);
 }
 
