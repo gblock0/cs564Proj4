@@ -33,7 +33,13 @@ const Status createHeapFile(const string fileName)
       hdrPage->firstPage = newPageNo;
       hdrPage->lastPage = newPageNo;
       hdrPage->pageCnt++;
-
+    
+      /*
+      //set to class var
+      headerPage = hdrPage;
+      filePtr = file;
+      */
+    
       //unpin pages from memory
       bufMgr->unPinPage(file, hdrPageNo, true);
       bufMgr->unPinPage(file, newPageNo, true);
@@ -243,16 +249,40 @@ const Status HeapFileScan::scanNext(RID& outRid)
     int 	nextPageNo;
     Record      rec;
 
-    
-	
-	
-	
-	
-	
-	
-	
-	
-	
+    while(curPageNo != -1)
+    {
+        tmpRid = curRec;
+        status = curPage->nextRecord(tmpRid,nextRid);
+        if(status != ENDOFPAGE)
+        {
+            getRecord(nextRid, rec);
+            if(matchRec(rec))
+            {
+                curRec = nextRid;
+                return status;
+            }
+        } else //we are at the end of the page, go to next
+        {
+            nextPageNo = curPage->nextPageNo;
+            bufMgr->unPinPage(filePtr, curPageNo, curDirtyFlag);
+            bufMgr->readPage(filePtr, nextPageNo, curPage);
+            curPageNo = nextPageNo;
+            curDirtyFlag = false;
+            status = curPage->firstRecord(nextRid);
+            if(status == NORECORDS)
+            {
+                //return not found
+            }
+            getRecord(nextRid, rec);
+            if(matchRec(rec))
+            {
+                curRec = nextRid;
+                return status;
+            }
+            
+            /* stopped here */
+        }
+    }
 }
 
 
@@ -369,6 +399,8 @@ const Status InsertFileScan::insertRecord(const Record & rec, RID& outRid)
     int		newPageNo;
     Status	status, unpinstatus;
     RID		rid;
+    
+    rid = curRec;
 
     // check for very large records
     if ((unsigned int) rec.length > PAGESIZE-DPFIXED)
@@ -377,18 +409,42 @@ const Status InsertFileScan::insertRecord(const Record & rec, RID& outRid)
         return INVALIDRECLEN;
     }
 
+    //if they are not equal then we must bring it in to memory
+    if(headerPage->lastPage != curPageNo)
+    {
+        //release old page and bring new one into memory and book keeping
+        //what is the point of unpinstatus?
+        unpinstatus = bufMgr->unPinPage(filePtr, curPageNo, curDirtyFlag);
+        bufMgr->readPage(filePtr, headerPage->lastPage, curPage);
+        curPageNo = headerPage->lastPage;
+        curDirtyFlag = false;
+    }
+    
+    //check to see if there is room on page for record
+    status = newPage->insertRecord(rec, rid);
+    //if there is not room then we must make a new page
+    if(status == NOSPACE)
+    {
+        newPageNo = (headerPage->lastPage)++;
+        bufMgr->allocPage(filePtr, newPageNo, newPage);
+        curPage->setNextPage(newPageNo);
+        bufMgr->unPinPage(filePtr,curPageNo, true);
+        curPageNo = newPageNo;
+        curPage = newPage;
+        curDirtyFlag = true;
+        headerPage->lastPage = newPageNo;
+        headerPage->pageCnt++;
+        hdrDirtyFlag = true;
+        newPage->init(newPageNo);
+        status = newPage->insertRecord(rec, rid);
+        //check to see if it fails?
+        
+    }
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+    curRec = rid;
+    outRid = rid;
+    
+    return status;
 }
 
 
