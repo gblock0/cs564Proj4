@@ -70,7 +70,7 @@ int main(int argc, char **argv)
     iScan = new InsertFileScan("dummy.02", status);
     cout << num << endl;
     for(i = 0; i < num; i++) {
-        cout << "in foor loop" << i  << endl;
+        cout << "in foor loop " << i  << endl;
         sprintf(rec1.s, "This is record %05d", i);
         rec1.i = i;
         rec1.f = i;
@@ -78,6 +78,7 @@ int main(int argc, char **argv)
         dbrec1.data = &rec1;
         dbrec1.length = sizeof(RECORD);
         status = iScan->insertRecord(dbrec1, newRid);
+        cout << "After test file insert" << endl;
 
 		// stash away rid and key of the record
 		ridArray[i] = newRid;
@@ -149,7 +150,7 @@ int main(int argc, char **argv)
     	    i++;
 		}
 		if (status != FILEEOF) error.print(status);
-		cout << "scan file1 saw " << i << " records " << endl;
+      cout << "scan file1 saw " << i << " records " << endl;
 		if (i != num)
             cout << "Err0r.   scan should have returned " << num << " records!"
                  << endl;

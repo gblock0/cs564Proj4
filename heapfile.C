@@ -9,59 +9,44 @@ const Status createHeapFile(const string fileName)
     FileHdrPage*	hdrPage;
     int			hdrPageNo;
     int			newPageNo;
-    Page*		newPage;
+    Page*		newPage = new Page();
 
-    cout << "haven't done shit" << endl;
     
     // try to open the file. This should return an error
     status = db.openFile(fileName, file);
-    cout << "after db.openFile" << endl;
     if (status != OK)
     {
-      cout << "stats was not OK, but thats good." << endl;
       // file doesn't exist. First create it and allocate
       // an empty header page and data page.
       db.createFile(fileName);
       status = db.openFile(fileName, file);
-      cout << "after db.createFile" << endl;
       //Create new Header Page
       bufMgr->allocPage(file, hdrPageNo, newPage);
       hdrPage = (FileHdrPage*) newPage;
-      cout << "after alloc new Header Page" << endl;
       
       hdrPage->pageCnt = 1;
-      cout<<"ima be pissed if this prints"<<endl;
       hdrPage->recCnt = 0;
       
-      cout << "should be here" << endl;
         
       //create and initialize new data page
       bufMgr->allocPage(file, newPageNo, newPage);
-      cout << "after alloc new page" << endl;
       newPage->init(newPageNo);
-      cout << "after init new page" << endl;
       hdrPage->firstPage = newPageNo;
       //strCopy
       strncpy(hdrPage->fileName, fileName.c_str(), MAXNAMESIZE);
-      cout << "after setting hdrPage->firstPage" << endl;
       hdrPage->lastPage = newPageNo;
-      cout << "after setting hdrPage->lastPage" << endl;
       hdrPage->pageCnt++;
-      cout << "after setting hdrPage->pageCnt" << endl;        
-      cout << "after alloc and init new data page" << endl;
     
       //unpin pages from memory
       bufMgr->unPinPage(file, hdrPageNo, true);
       bufMgr->unPinPage(file, newPageNo, true);
         
         
-      cout << "after unpinning" << endl;
       
       //flush file to disk
       bufMgr->flushFile(file);
         
         
-      cout << "after flushFile" << endl;
       db.closeFile(file);
       return OK;
     }
@@ -119,12 +104,12 @@ HeapFile::~HeapFile()
     if (curPage != NULL)
     {
     	status = bufMgr->unPinPage(filePtr, curPageNo, curDirtyFlag);
-		curPage = NULL;
-		curPageNo = 0;
-		curDirtyFlag = false;
-		if (status != OK) cerr << "error in unpin of date page\n";
-    }
-	
+      curPage = NULL;
+      curPageNo = 0;
+      curDirtyFlag = false;
+      if (status != OK) cerr << "error in unpin of date page\n";
+      }
+    
 	 // unpin the header page
     status = bufMgr->unPinPage(filePtr, headerPageNo, hdrDirtyFlag);
     if (status != OK) cerr << "error in unpin of header page\n";
@@ -431,9 +416,13 @@ const Status InsertFileScan::insertRecord(const Record & rec, RID& outRid)
         return INVALIDRECLEN;
     }
 
+    //check to see if there is room on page for record
+    status = curPage->insertRecord(rec, rid); //WAS newPage->...
+
     //if they are not equal then we must bring it in to memory
-    if(headerPage->lastPage != curPageNo)
+    if(headerPage->lastPage != curPageNo && status == NOSPACE)
     {
+        cout << "in first if" << endl;
         //release old page and bring new one into memory and book keeping
         //what is the point of unpinstatus?
         unpinstatus = bufMgr->unPinPage(filePtr, curPageNo, curDirtyFlag);
@@ -443,45 +432,33 @@ const Status InsertFileScan::insertRecord(const Record & rec, RID& outRid)
     }
     
     //check to see if there is room on page for record
-    status = newPage->insertRecord(rec, rid);
+    status = curPage->insertRecord(rec, rid); //WAS newPage->...
+    cout << "After second insert" << endl;
+
     //if there is not room then we must make a new page
     if(status == NOSPACE)
     {
-        cout << "after insert 1" << endl;
-        newPageNo = (headerPage->lastPage)++;
-        cout << "after insert 2" << endl;
-        cout << "newPageNo = " << newPageNo << endl;
-        cout << "filePtr = " << filePtr << endl;
-        cout << "newPage = " << newPage << endl;
+        cout << "No Space making new page" << endl;
+        int tempNum = (headerPage->lastPage);
+        newPageNo = tempNum++;
         bufMgr->allocPage(filePtr, newPageNo, newPage);
-        cout << "after insert 3" << endl;
-        curPage->setNextPage(newPageNo);
-        cout << "after insert 4" << endl;
-        bufMgr->unPinPage(filePtr,curPageNo, true);
-        cout << "after insert 5" << endl;
-        curPageNo = newPageNo;
-        cout << "after insert 6" << endl;
-        curPage = newPage;
-        cout << "after insert 7" << endl;
-        curDirtyFlag = true;
-        cout << "after insert 8" << endl;
-        headerPage->lastPage = newPageNo;
-        cout << "after insert 9" << endl;
-        headerPage->pageCnt++;
-        cout << "after insert 10" << endl;
-        hdrDirtyFlag = true;
-        cout << "after insert 11" << endl;
         newPage->init(newPageNo);
-        cout << "after insert 12" << endl;
+        curPage->setNextPage(newPageNo);
+        bufMgr->unPinPage(filePtr,curPageNo, curDirtyFlag);
+        bufMgr->readPage(filePtr, newPageNo, curPage);
+        curPageNo = newPageNo;
+        curPage = newPage;
+        curDirtyFlag = true;
+        headerPage->lastPage = newPageNo;
+        headerPage->pageCnt++;
+        hdrDirtyFlag = true;
         status = newPage->insertRecord(rec, rid);
-        cout << "after insert 13" << endl;
         //check to see if it fails?
         
     }
   
     curRec = rid;
     outRid = rid;
-    cout << "status = " <<  status << endl; 
     return status;
 }
 
