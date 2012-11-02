@@ -55,7 +55,7 @@ int main(int argc, char **argv)
     cout << "CREATED THIS SHIT" << endl;
     if (status != OK) 
     {
-		cerr << "got err0r status return from  createHeapFile" << endl;
+		cerr << "got error status return from  createHeapFile" << endl;
     	error.print(status);
     }
 
@@ -68,7 +68,9 @@ int main(int argc, char **argv)
 
     cout << "Start an insert scan which will have the side effect of opening dummy.02 " << endl;
     iScan = new InsertFileScan("dummy.02", status);
+    cout << num << endl;
     for(i = 0; i < num; i++) {
+        cout << "in foor loop" << i  << endl;
         sprintf(rec1.s, "This is record %05d", i);
         rec1.i = i;
         rec1.f = i;
@@ -83,7 +85,7 @@ int main(int argc, char **argv)
 
         if (status != OK) 
         {
-            cout << "got err0r status return from insertrecord" << endl;
+            cout << "got error status return from insertrecord" << endl;
             cout << "inserted " << i << " records into file dummy1 before error " 
                  << endl;
             error.print(status);

@@ -22,6 +22,7 @@ const Status createHeapFile(const string fileName)
       // file doesn't exist. First create it and allocate
       // an empty header page and data page.
       db.createFile(fileName);
+      status = db.openFile(fileName, file);
       cout << "after db.createFile" << endl;
       //Create new Header Page
       bufMgr->allocPage(file, hdrPageNo, newPage);
@@ -40,6 +41,8 @@ const Status createHeapFile(const string fileName)
       newPage->init(newPageNo);
       cout << "after init new page" << endl;
       hdrPage->firstPage = newPageNo;
+      //strCopy
+      strncpy(hdrPage->fileName, fileName.c_str(), MAXNAMESIZE);
       cout << "after setting hdrPage->firstPage" << endl;
       hdrPage->lastPage = newPageNo;
       cout << "after setting hdrPage->lastPage" << endl;
@@ -59,6 +62,8 @@ const Status createHeapFile(const string fileName)
         
         
       cout << "after flushFile" << endl;
+      db.closeFile(file);
+      return OK;
     }
     return (FILEEXISTS);
 }
@@ -73,22 +78,22 @@ const Status destroyHeapFile(const string fileName)
 HeapFile::HeapFile(const string & fileName, Status& returnStatus)
 {
     Status 	status;
-    Page*	pagePtr;
+    Page*	pagePtr = new Page();
 
     cout << "opening file " << fileName << endl;
 
     // open the file and read in the header page and the first data page
     if ((status = db.openFile(fileName, filePtr)) == OK)
     {
-		//read in header page and set HeapFile protected variables headerPage
+        //read in header page and set HeapFile protected variables headerPage
         //headerPageNo and hdrDirtyFlag
         status = filePtr->getFirstPage(headerPageNo);
         status = filePtr->readPage(headerPageNo, pagePtr);
         headerPage = (FileHdrPage*) pagePtr;
         hdrDirtyFlag = false;
-        
+
         //read in first data page and set HeapFile protected variables
-        status = filePtr->readPage(headerPage->firstPage,pagePtr);
+        status = bufMgr->readPage(filePtr, headerPage->firstPage, pagePtr);
         curPage = pagePtr;
         curPageNo = headerPage->firstPage;
         curDirtyFlag = false;
@@ -99,8 +104,8 @@ HeapFile::HeapFile(const string & fileName, Status& returnStatus)
     else
     {
     	cerr << "open of heap file failed\n";
-		returnStatus = status;
-		return;
+      returnStatus = status;
+      return;
     }
 }
 
@@ -412,7 +417,7 @@ InsertFileScan::~InsertFileScan()
 // Insert a record into the file
 const Status InsertFileScan::insertRecord(const Record & rec, RID& outRid)
 {
-    Page*	newPage;
+    Page*	newPage = new Page();
     int		newPageNo;
     Status	status, unpinstatus;
     RID		rid;
@@ -442,25 +447,41 @@ const Status InsertFileScan::insertRecord(const Record & rec, RID& outRid)
     //if there is not room then we must make a new page
     if(status == NOSPACE)
     {
+        cout << "after insert 1" << endl;
         newPageNo = (headerPage->lastPage)++;
+        cout << "after insert 2" << endl;
+        cout << "newPageNo = " << newPageNo << endl;
+        cout << "filePtr = " << filePtr << endl;
+        cout << "newPage = " << newPage << endl;
         bufMgr->allocPage(filePtr, newPageNo, newPage);
+        cout << "after insert 3" << endl;
         curPage->setNextPage(newPageNo);
+        cout << "after insert 4" << endl;
         bufMgr->unPinPage(filePtr,curPageNo, true);
+        cout << "after insert 5" << endl;
         curPageNo = newPageNo;
+        cout << "after insert 6" << endl;
         curPage = newPage;
+        cout << "after insert 7" << endl;
         curDirtyFlag = true;
+        cout << "after insert 8" << endl;
         headerPage->lastPage = newPageNo;
+        cout << "after insert 9" << endl;
         headerPage->pageCnt++;
+        cout << "after insert 10" << endl;
         hdrDirtyFlag = true;
+        cout << "after insert 11" << endl;
         newPage->init(newPageNo);
+        cout << "after insert 12" << endl;
         status = newPage->insertRecord(rec, rid);
+        cout << "after insert 13" << endl;
         //check to see if it fails?
         
     }
   
     curRec = rid;
     outRid = rid;
-    
+    cout << "status = " <<  status << endl; 
     return status;
 }
 
