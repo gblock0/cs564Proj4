@@ -11,41 +11,54 @@ const Status createHeapFile(const string fileName)
     int			newPageNo;
     Page*		newPage;
 
+    cout << "haven't done shit" << endl;
+    
     // try to open the file. This should return an error
     status = db.openFile(fileName, file);
+    cout << "after db.openFile" << endl;
     if (status != OK)
     {
+      cout << "stats was not OK, but thats good." << endl;
       // file doesn't exist. First create it and allocate
       // an empty header page and data page.
       db.createFile(fileName);
+      cout << "after db.createFile" << endl;
       //Create new Header Page
       bufMgr->allocPage(file, hdrPageNo, newPage);
       hdrPage = (FileHdrPage*) newPage;
-
-      //initialize header page attributes
-      //hdrPage->fileName = fileName; ********COME BACK*******
-      hdrPage->pageCnt = 0;
+      cout << "after alloc new Header Page" << endl;
+      
+      hdrPage->pageCnt = 1;
+      cout<<"ima be pissed if this prints"<<endl;
       hdrPage->recCnt = 0;
       
+      cout << "should be here" << endl;
+        
       //create and initialize new data page
       bufMgr->allocPage(file, newPageNo, newPage);
+      cout << "after alloc new page" << endl;
       newPage->init(newPageNo);
+      cout << "after init new page" << endl;
       hdrPage->firstPage = newPageNo;
+      cout << "after setting hdrPage->firstPage" << endl;
       hdrPage->lastPage = newPageNo;
+      cout << "after setting hdrPage->lastPage" << endl;
       hdrPage->pageCnt++;
-    
-      /*
-      //set to class var
-      headerPage = hdrPage;
-      filePtr = file;
-      */
+      cout << "after setting hdrPage->pageCnt" << endl;        
+      cout << "after alloc and init new data page" << endl;
     
       //unpin pages from memory
       bufMgr->unPinPage(file, hdrPageNo, true);
       bufMgr->unPinPage(file, newPageNo, true);
+        
+        
+      cout << "after unpinning" << endl;
       
       //flush file to disk
       bufMgr->flushFile(file);
+        
+        
+      cout << "after flushFile" << endl;
     }
     return (FILEEXISTS);
 }
@@ -67,15 +80,19 @@ HeapFile::HeapFile(const string & fileName, Status& returnStatus)
     // open the file and read in the header page and the first data page
     if ((status = db.openFile(fileName, filePtr)) == OK)
     {
-		
-		
-		
-		
-		
-		
-		
-		
-		
+		//read in header page and set HeapFile protected variables headerPage
+        //headerPageNo and hdrDirtyFlag
+        status = filePtr->getFirstPage(headerPageNo);
+        status = filePtr->readPage(headerPageNo, pagePtr);
+        headerPage = (FileHdrPage*) pagePtr;
+        hdrDirtyFlag = false;
+        
+        //read in first data page and set HeapFile protected variables
+        status = filePtr->readPage(headerPage->firstPage,pagePtr);
+        curPage = pagePtr;
+        curPageNo = headerPage->firstPage;
+        curDirtyFlag = false;
+        curRec = NULLRID;
 		
 		
     }
@@ -255,7 +272,7 @@ const Status HeapFileScan::scanNext(RID& outRid)
         status = curPage->nextRecord(tmpRid,nextRid);
         if(status != ENDOFPAGE)
         {
-            getRecord(nextRid, rec);
+            curPage->getRecord(nextRid, rec);
             if(matchRec(rec))
             {
                 curRec = nextRid;
@@ -263,7 +280,7 @@ const Status HeapFileScan::scanNext(RID& outRid)
             }
         } else //we are at the end of the page, go to next
         {
-            nextPageNo = curPage->nextPageNo;
+            curPage->getNextPage(nextPageNo);
             bufMgr->unPinPage(filePtr, curPageNo, curDirtyFlag);
             bufMgr->readPage(filePtr, nextPageNo, curPage);
             curPageNo = nextPageNo;
@@ -271,18 +288,18 @@ const Status HeapFileScan::scanNext(RID& outRid)
             status = curPage->firstRecord(nextRid);
             if(status == NORECORDS)
             {
-                //return not found
+                return status;
             }
-            getRecord(nextRid, rec);
+            curPage->getRecord(nextRid, rec);
             if(matchRec(rec))
             {
                 curRec = nextRid;
+                outRid = nextRid;
                 return status;
             }
-            
-            /* stopped here */
         }
     }
+    return NORECORDS;
 }
 
 

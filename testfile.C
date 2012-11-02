@@ -50,7 +50,9 @@ int main(int argc, char **argv)
     status = destroyHeapFile("dummy.02");
     // ignore the error return
 
+    cout << "ABOUT TO CREATE THIS SHIT" <<endl;
     status = createHeapFile("dummy.02");
+    cout << "CREATED THIS SHIT" << endl;
     if (status != OK) 
     {
 		cerr << "got err0r status return from  createHeapFile" << endl;
