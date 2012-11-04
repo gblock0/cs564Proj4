@@ -15,6 +15,7 @@ const Status createHeapFile(const string fileName)
     status = db.openFile(fileName, file);
     if (status != OK)
     {
+        
         // file doesn't exist. First create it and allocate
         // an empty header page and data page.
         
@@ -64,7 +65,7 @@ const Status createHeapFile(const string fileName)
         return status;
         
     }
-    return (FILEEXISTS);
+    return status;
 }
 
 // routine to destroy a heapfile
