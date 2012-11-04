@@ -312,6 +312,7 @@ const Status HeapFileScan::scanNext(RID& outRid)
     int 	nextPageNo;
     Record      rec;
 
+    //infinite loop on last iteration of scanNext
     while(curPageNo != -1)
     {
         //check to see if curPage has a good record

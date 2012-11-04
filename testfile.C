@@ -380,6 +380,7 @@ int main(int argc, char **argv)
         scan1->startScan(0, sizeof(int), INTEGER, (char*)&j, LT);
         i = 0;
 
+        //infinite loop on last interation of scanNext
         while ((status = scan1->scanNext(rec2Rid)) != FILEEOF)
         {
             status = scan1->getRecord(dbrec2);
