@@ -328,6 +328,7 @@ const Status HeapFileScan::scanNext(RID& outRid)
             //checks if it matches the condition
             if(matchRec(rec))
             {
+                cout << "In match OK" << endl;
                 curRec = nextRid;
                 outRid = nextRid;
                 return status;
@@ -362,7 +363,8 @@ const Status HeapFileScan::scanNext(RID& outRid)
             status = curPage->getRecord(nextRid, rec);
             if(status != OK) {
                 cout << "here1" << endl;
-                return status;}
+                return status;
+            }
             
             //if matches then YEA!
             if(matchRec(rec))
