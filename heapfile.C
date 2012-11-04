@@ -9,46 +9,62 @@ const Status createHeapFile(const string fileName)
     FileHdrPage*	hdrPage;
     int			hdrPageNo;
     int			newPageNo;
-    Page*		newPage = new Page();
+    Page*		newPage;
 
     
     // try to open the file. This should return an error
     status = db.openFile(fileName, file);
     if (status != OK)
     {
-      // file doesn't exist. First create it and allocate
-      // an empty header page and data page.
-      db.createFile(fileName);
-      status = db.openFile(fileName, file);
-      //Create new Header Page
-      bufMgr->allocPage(file, hdrPageNo, newPage);
-      hdrPage = (FileHdrPage*) newPage;
-      
-      hdrPage->pageCnt = 1;
-      hdrPage->recCnt = 0;
-      
+        // file doesn't exist. First create it and allocate
+        // an empty header page and data page.
         
-      //create and initialize new data page
-      bufMgr->allocPage(file, newPageNo, newPage);
-      newPage->init(newPageNo);
-      hdrPage->firstPage = newPageNo;
-      //strCopy
-      strncpy(hdrPage->fileName, fileName.c_str(), MAXNAMESIZE);
-      hdrPage->lastPage = newPageNo;
-      hdrPage->pageCnt++;
-    
-      //unpin pages from memory
-      bufMgr->unPinPage(file, hdrPageNo, true);
-      bufMgr->unPinPage(file, newPageNo, true);
+        //creat the file 
+        status = db.createFile(fileName);
+        if(status != OK) { return status; }
+        
+        //open the file, a good idea!
+        status = db.openFile(fileName, file);
+        if(status != OK) {return status;}
+        
+        //Create new Header Page
+        status = bufMgr->allocPage(file, hdrPageNo, newPage);
+        if(status != OK) return status;
+        
+        //init hdrPage
+        hdrPage = (FileHdrPage*) newPage;
+        hdrPage->pageCnt = 0;
+        hdrPage->recCnt = 0;
+        strncpy(hdrPage->fileName, fileName.c_str(), MAXNAMESIZE);
+        
+        //create and initialize new data page
+        status = bufMgr->allocPage(file, newPageNo, newPage);
+        if(status != OK) return status;
+        
+        newPage->init(newPageNo);
+        
+        //update hdrPage vars
+        hdrPage->firstPage = newPageNo;
+        hdrPage->lastPage = newPageNo;
+        hdrPage->pageCnt = 1;
         
         
-      
-      //flush file to disk
-      bufMgr->flushFile(file);
+        //unpin pages from memory
+        status = bufMgr->unPinPage(file, hdrPageNo, true);
+        if(status != OK) return status;
+        bufMgr->unPinPage(file, hdrPage->firstPage, true);
+        if(status != OK) return status;
         
+        //flush file to disk
+        status = bufMgr->flushFile(file);
+        if(status != OK) return status;
         
-      db.closeFile(file);
-      return OK;
+        //close
+        status = db.closeFile(file);
+        if(status != OK) return status;
+        
+        return status;
+        
     }
     return (FILEEXISTS);
 }
