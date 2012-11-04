@@ -322,13 +322,11 @@ const Status HeapFileScan::scanNext(RID& outRid)
             //gets the actual record
             status = curPage->getRecord(nextRid, rec);
             if(status != OK) {
-                cout << "here" << endl;
                 return status;}
             
             //checks if it matches the condition
             if(matchRec(rec))
             {
-                cout << "In match OK" << endl;
                 curRec = nextRid;
                 outRid = nextRid;
                 return status;
@@ -337,7 +335,6 @@ const Status HeapFileScan::scanNext(RID& outRid)
         {
             //gets the next page number
             curPage->getNextPage(nextPageNo);
-            
             //if we are at end of file
             if(nextPageNo == -1){
                 return FILEEOF;
@@ -346,7 +343,6 @@ const Status HeapFileScan::scanNext(RID& outRid)
             //release current page
             status = bufMgr->unPinPage(filePtr, curPageNo, curDirtyFlag);
             if(status != OK) return status;
-            
             //get next page and update vars
             status = bufMgr->readPage(filePtr, nextPageNo, curPage);
             if(status != OK) return status;
@@ -357,21 +353,20 @@ const Status HeapFileScan::scanNext(RID& outRid)
             status = curPage->firstRecord(nextRid);
             //can return NORECORD if there was no record there,
             //but maybe not at end of file. 
-            if(status != OK) return status;
-            
-            //get the actual record
-            status = curPage->getRecord(nextRid, rec);
-            if(status != OK) {
-                cout << "here1" << endl;
+            if(status != NORECORDS){
+              //get the actual record
+              status = curPage->getRecord(nextRid, rec);
+              if(status != OK) {
                 return status;
-            }
-            
-            //if matches then YEA!
-            if(matchRec(rec))
-            {
+              }
+
+              //if matches then YEA!
+              if(matchRec(rec))
+              {
                 curRec = nextRid;
                 outRid = nextRid;
                 return status;
+              }
             }
         }
     }

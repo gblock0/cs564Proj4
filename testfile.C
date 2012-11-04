@@ -311,7 +311,6 @@ int main(int argc, char **argv)
             i++;
         }
         
-        ASSERT(false);
         
         scan1->endScan();
         delete scan1;
