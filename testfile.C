@@ -50,15 +50,14 @@ int main(int argc, char **argv)
     status = destroyHeapFile("dummy.02");
     // ignore the error return
 
-    cout << "ABOUT TO CREATE THIS SHIT" <<endl;
     status = createHeapFile("dummy.02");
-    cout << "CREATED THIS SHIT" << endl;
+
     if (status != OK) 
     {
 		cerr << "got error status return from  createHeapFile" << endl;
     	error.print(status);
     }
-
+    
     // initialize all of rec1.s to keep purify happy
     memset(rec1.s, ' ', sizeof(rec1.s));
 
@@ -70,7 +69,7 @@ int main(int argc, char **argv)
     iScan = new InsertFileScan("dummy.02", status);
     cout << num << endl;
     for(i = 0; i < num; i++) {
-        cout << "in foor loop " << i  << endl;
+        //cout << "in foor loop " << i  << endl;
         sprintf(rec1.s, "This is record %05d", i);
         rec1.i = i;
         rec1.f = i;
@@ -78,12 +77,12 @@ int main(int argc, char **argv)
         dbrec1.data = &rec1;
         dbrec1.length = sizeof(RECORD);
         status = iScan->insertRecord(dbrec1, newRid);
-        cout << "After test file insert" << endl;
+        //cout << "After test file insert" << endl;
 
 		// stash away rid and key of the record
 		ridArray[i] = newRid;
 		//printf("next rid (%d.%d)\n",ridArray[i].pageNo, ridArray[i].slotNo);
-
+        
         if (status != OK) 
         {
             cout << "got error status return from insertrecord" << endl;
@@ -119,14 +118,15 @@ int main(int argc, char **argv)
 			status = file1->getRecord(ridArray[i], dbrec2);
     	    if (status != OK) error.print(status);
 
-
 			// compare with what we should get back
 			if (memcmp(&rec1, dbrec2.data, sizeof(RECORD)) != 0) 
-			    cout << "err0r reading record " << i << " back" << endl;
+			    cout << "error reading record " << i << " back" << endl;
 		}
 		cout << "getRecord() tests passed successfully" << endl;
     }
     delete file1;
+    
+    //ASSERT(false);
     
     // scan the file sequentially checking that each record was stored properly
     cout << "scan file dummy.02 " << endl;
@@ -189,6 +189,7 @@ int main(int argc, char **argv)
             cout << "Err0r.   scan should have returned " << num << " records!"
                  << endl;
     }
+    
     // delete scan object
     scan1->endScan();
     delete scan1;
@@ -237,7 +238,7 @@ int main(int argc, char **argv)
 		deleted = 0;
 		while ((status = scan1->scanNext(rec2Rid)) != FILEEOF)
 		{
-			// cout << "processing record " << i << i << endl;
+            //cout << "processing record " << i << i << endl;
 			if (status != OK) error.print(status);
 			if ((i % 2) != 0)
 			{
@@ -260,7 +261,7 @@ int main(int argc, char **argv)
     }
     delete scan1;
     scan1 = NULL;
-
+    
     cout << endl;
     deleted = 0;
     cout << "scan file, counting number of remaining records" << endl;
@@ -287,6 +288,7 @@ int main(int argc, char **argv)
             i++;
             
         }
+        
         // subtract first record
         i--;
         
@@ -309,6 +311,8 @@ int main(int argc, char **argv)
             }
             i++;
         }
+        
+        ASSERT(false);
         
         scan1->endScan();
         delete scan1;
