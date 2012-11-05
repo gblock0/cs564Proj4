@@ -327,9 +327,9 @@ const Status HeapFileScan::scanNext(RID& outRid)
             if(status != OK) {
                 return status;
             }
+            curRec = nextRid;
             
             //checks if it matches the condition
-            curRec = nextRid;
             if(matchRec(rec))
             {
                 outRid = nextRid;
@@ -363,9 +363,8 @@ const Status HeapFileScan::scanNext(RID& outRid)
               if(status != OK) {
                 return status;
               }
-
-
               curRec = nextRid;
+
               //if matches then YEA!
               if(matchRec(rec))
               {
@@ -488,7 +487,7 @@ InsertFileScan::~InsertFileScan()
 // Insert a record into the file
 const Status InsertFileScan::insertRecord(const Record & rec, RID& outRid)
 {
-    Page*	newPage = new Page();
+    Page*	newPage;
     int		newPageNo;
     Status	status, unpinstatus;
     RID		rid;
@@ -518,7 +517,6 @@ const Status InsertFileScan::insertRecord(const Record & rec, RID& outRid)
         if (status != OK) {return status;}
         curPageNo = headerPage->lastPage;
         curDirtyFlag = false;
-        //update curRecord?
     }
     
     //now we know we have the last page
@@ -532,6 +530,9 @@ const Status InsertFileScan::insertRecord(const Record & rec, RID& outRid)
         //shoul d we be setting curRec here?
         curRec = rid;
         outRid = rid;
+        curDirtyFlag = true;
+        headerPage->recCnt = (headerPage->recCnt)++;
+        hdrDirtyFlag = true;
         return OK;
     }
     
@@ -540,18 +541,18 @@ const Status InsertFileScan::insertRecord(const Record & rec, RID& outRid)
     //alloc and init new page
     status = bufMgr->allocPage(filePtr, newPageNo, newPage);
     if (status != OK){ 
-        return status;}
+        return status;
+    }
     newPage->init(newPageNo);
 
     //update new page
     curPage->setNextPage(newPageNo);
-    curDirtyFlag = true;
     
     //release curPage
     unpinstatus = bufMgr->unPinPage(filePtr,curPageNo,curDirtyFlag);
     if(unpinstatus != OK) 
     {
-    return unpinstatus;
+      return unpinstatus;
     }
     //read in newly allocated page and update header vars and self vars
     //status = bufMgr->readPage(filePtr, newPageNo, curPage);
@@ -567,54 +568,10 @@ const Status InsertFileScan::insertRecord(const Record & rec, RID& outRid)
     status = curPage->insertRecord(rec, rid);
     if (status != OK) { return status;}
     
+    headerPage->recCnt = (headerPage->recCnt)++;
     curRec = rid;
     outRid = rid;
     return status;
-    
-    
-    /*
-    //if they are not equal then we must bring it in to memory
-    if(headerPage->lastPage != curPageNo && status == NOSPACE)
-    {
-        cout << "in first if" << endl;
-        //release old page and bring new one into memory and book keeping
-        //what is the point of unpinstatus?
-        unpinstatus = bufMgr->unPinPage(filePtr, curPageNo, curDirtyFlag);
-        bufMgr->readPage(filePtr, headerPage->lastPage, curPage);
-        curPageNo = headerPage->lastPage;
-        curDirtyFlag = false;
-    }
-    
-    //check to see if there is room on page for record
-    status = curPage->insertRecord(rec, rid); //WAS newPage->...
-    cout << "After second insert" << endl;
-
-    //if there is not room then we must make a new page
-    if(status == NOSPACE)
-    {
-        cout << "No Space making new page" << endl;
-        int tempNum = (headerPage->lastPage);
-        newPageNo = tempNum++;
-        bufMgr->allocPage(filePtr, newPageNo, newPage);
-        newPage->init(newPageNo);
-        curPage->setNextPage(newPageNo);
-        bufMgr->unPinPage(filePtr,curPageNo, curDirtyFlag);
-        bufMgr->readPage(filePtr, newPageNo, curPage);
-        curPageNo = newPageNo;
-        curPage = newPage;
-        curDirtyFlag = true;
-        headerPage->lastPage = newPageNo;
-        headerPage->pageCnt++;
-        hdrDirtyFlag = true;
-        status = newPage->insertRecord(rec, rid);
-        //check to see if it fails?
-        
-    }
-  
-    curRec = rid;
-    outRid = rid;
-    return status;
-     */
 }
 
 

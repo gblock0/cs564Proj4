@@ -394,7 +394,7 @@ int main(int argc, char **argv)
             error.print(status);
         //scan of dummy.03 saw 20250 records
         //should have 5060 reccords
-        //* ******************************************************** */
+        //********************************************************
         cout << "scan of dummy.03 saw " << i << " records " << endl;
         if (i != num / 2)
             cout << "Err0r.   scan should have returned " << num / 2
