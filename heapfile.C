@@ -313,6 +313,7 @@ const Status HeapFileScan::scanNext(RID& outRid)
     Record      rec;
 
     //infinite loop on last iteration of scanNext
+    //nextPageNo is 32767 not -1
     while(curPageNo != -1)
     {
         //check to see if curPage has a good record
@@ -324,7 +325,8 @@ const Status HeapFileScan::scanNext(RID& outRid)
             //gets the actual record
             status = curPage->getRecord(nextRid, rec);
             if(status != OK) {
-                return status;}
+                return status;
+            }
             
             //checks if it matches the condition
             if(matchRec(rec))
@@ -353,7 +355,7 @@ const Status HeapFileScan::scanNext(RID& outRid)
             
             //gets the first record in the next page
             status = curPage->firstRecord(nextRid);
-            //can return NORECORD if there was no record there,
+            //can return NORECORDS if there was no record there,
             //but maybe not at end of file. 
             if(status != NORECORDS){
               //get the actual record
@@ -371,6 +373,7 @@ const Status HeapFileScan::scanNext(RID& outRid)
               }
             }
         }
+            cout << nextPageNo << endl;
     }
     return FILEEOF;
 }
