@@ -329,9 +329,9 @@ const Status HeapFileScan::scanNext(RID& outRid)
             }
             
             //checks if it matches the condition
+            curRec = nextRid;
             if(matchRec(rec))
             {
-                curRec = nextRid;
                 outRid = nextRid;
                 return status;
             }
@@ -364,16 +364,16 @@ const Status HeapFileScan::scanNext(RID& outRid)
                 return status;
               }
 
+
+              curRec = nextRid;
               //if matches then YEA!
               if(matchRec(rec))
               {
-                curRec = nextRid;
                 outRid = nextRid;
                 return status;
               }
             }
         }
-            cout << nextPageNo << endl;
     }
     return FILEEOF;
 }
